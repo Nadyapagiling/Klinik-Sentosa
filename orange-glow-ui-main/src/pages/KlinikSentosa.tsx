@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, Calendar, Pill, MessageSquare, LogOut, Users, ClipboardList, Activity, FileText, Plus, Edit, Trash2, Search, Save, X, DollarSign } from 'lucide-react';
+import { usePatients, useAddPatient, useUpdatePatient, useDeletePatient, useVisits, useAddVisit, useUpdateVisit, useDrugs, useAddDrug, useUpdateDrug, useDeleteDrug, usePrescriptions, useAddPrescription, useUpdatePrescription, useTransactions, useAddTransaction, useComplaints, useAddComplaint, useUpdateComplaint } from '../hooks/useKlinikData';
 
 const KlinikSentosaSystem = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -15,55 +16,28 @@ const KlinikSentosaSystem = () => {
     { username: 'apoteker', password: 'apoteker123', role: 'apoteker', name: 'Apt. John' }
   ];
 
-  const [patients, setPatients] = useState([
-    {
-      id: 'P001',
-      name: 'Budi Santoso',
-      nik: '7171012345678901',
-      dob: '1985-05-15',
-      gender: 'Laki-laki',
-      address: 'Jl. Merdeka No. 10, Manado',
-      contact: '081234567890',
-      allergy: 'Penisilin',
-      medicalHistory: 'Hipertensi'
-    }
-  ]);
+  // React Query hooks untuk data management
+  const { data: patients = [], isLoading: loadingPatients } = usePatients();
+  const { data: visits = [], isLoading: loadingVisits } = useVisits();
+  const { data: drugs = [], isLoading: loadingDrugs } = useDrugs();
+  const { data: prescriptions = [], isLoading: loadingPrescriptions } = usePrescriptions();
+  const { data: transactions = [], isLoading: loadingTransactions } = useTransactions();
+  const { data: complaints = [], isLoading: loadingComplaints } = useComplaints();
 
-  const [visits, setVisits] = useState([
-    {
-      id: 'V001',
-      patientId: 'P001',
-      patientName: 'Budi Santoso',
-      visitDate: '2025-11-12',
-      queueNo: 'A001',
-      status: 'Menunggu',
-      complaint: 'Demam dan batuk',
-      diagnosis: '',
-      notes: ''
-    }
-  ]);
-
-  const [prescriptions, setPrescriptions] = useState([]);
-
-  const [drugs, setDrugs] = useState([
-    { id: 'D001', name: 'Paracetamol 500mg', stock: 100, unitPrice: 5000, expiryDate: '2026-12-31' },
-    { id: 'D002', name: 'Amoxicillin 500mg', stock: 50, unitPrice: 15000, expiryDate: '2026-10-15' },
-    { id: 'D003', name: 'Vitamin C 1000mg', stock: 200, unitPrice: 3000, expiryDate: '2027-03-20' }
-  ]);
-
-  const [complaints, setComplaints] = useState([
-    {
-      id: 'C001',
-      patientId: 'P001',
-      patientName: 'Budi Santoso',
-      content: 'Pelayanan sangat baik dan ramah',
-      status: 'Baru',
-      response: '',
-      date: '2025-11-10'
-    }
-  ]);
-
-  const [transactions, setTransactions] = useState([]);
+  // Mutations
+  const addPatientMutation = useAddPatient();
+  const updatePatientMutation = useUpdatePatient();
+  const deletePatientMutation = useDeletePatient();
+  const addVisitMutation = useAddVisit();
+  const updateVisitMutation = useUpdateVisit();
+  const addDrugMutation = useAddDrug();
+  const updateDrugMutation = useUpdateDrug();
+  const deleteDrugMutation = useDeleteDrug();
+  const addPrescriptionMutation = useAddPrescription();
+  const updatePrescriptionMutation = useUpdatePrescription();
+  const addTransactionMutation = useAddTransaction();
+  const addComplaintMutation = useAddComplaint();
+  const updateComplaintMutation = useUpdateComplaint();
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('');
   const [editingItem, setEditingItem] = useState(null);
@@ -92,50 +66,113 @@ const KlinikSentosaSystem = () => {
 
   const handlePatientSubmit = (formData) => {
     if (editingItem) {
-      setPatients(prev => prev.map(p => p.id === editingItem.id ? { ...formData, id: editingItem.id } : p));
-      alert('Data pasien berhasil diupdate!');
+      updatePatientMutation.mutate(
+        { id: editingItem.id, data: formData },
+        {
+          onSuccess: () => {
+            alert('Data pasien berhasil diupdate!');
+            setShowModal(false);
+            setEditingItem(null);
+          },
+          onError: (error) => {
+            alert('Gagal update pasien: ' + error.message);
+          }
+        }
+      );
     } else {
-      const newId = 'P' + String(patients.length + 1).padStart(3, '0');
-      setPatients(prev => [...prev, { ...formData, id: newId }]);
-      alert('Pasien baru berhasil ditambahkan dengan ID: ' + newId);
+      addPatientMutation.mutate(formData, {
+        onSuccess: (data) => {
+          alert('Pasien baru berhasil ditambahkan dengan ID: ' + data.id);
+          setShowModal(false);
+          setEditingItem(null);
+        },
+        onError: (error) => {
+          alert('Gagal tambah pasien: ' + error.message);
+        }
+      });
     }
-    setShowModal(false);
-    setEditingItem(null);
   };
 
   const handleVisitSubmit = (formData) => {
     if (editingItem) {
-      setVisits(prev => prev.map(v => v.id === editingItem.id ? { ...formData, id: editingItem.id } : v));
-      alert('Data kunjungan berhasil diupdate!');
+      updateVisitMutation.mutate(
+        { id: editingItem.id, data: formData },
+        {
+          onSuccess: () => {
+            alert('Data kunjungan berhasil diupdate!');
+            setShowModal(false);
+            setEditingItem(null);
+          },
+          onError: (error) => {
+            alert('Gagal update kunjungan: ' + error.message);
+          }
+        }
+      );
     } else {
-      const newId = 'V' + String(visits.length + 1).padStart(3, '0');
       const queueNo = 'A' + String(visits.filter(v => v.visitDate === formData.visitDate).length + 1).padStart(3, '0');
-      setVisits(prev => [...prev, { ...formData, id: newId, queueNo, status: 'Menunggu' }]);
-      alert('Pasien berhasil didaftarkan! No. Antrian: ' + queueNo);
+      addVisitMutation.mutate(
+        { ...formData, queueNo, status: 'Menunggu' },
+        {
+          onSuccess: (data) => {
+            alert('Pasien berhasil didaftarkan! No. Antrian: ' + queueNo);
+            setShowModal(false);
+            setEditingItem(null);
+          },
+          onError: (error) => {
+            alert('Gagal daftarkan pasien: ' + error.message);
+          }
+        }
+      );
     }
-    setShowModal(false);
-    setEditingItem(null);
   };
 
   const handlePrescriptionSubmit = (formData) => {
-    const newId = 'PR' + String(prescriptions.length + 1).padStart(3, '0');
-    setPrescriptions(prev => [...prev, { ...formData, id: newId, date: new Date().toISOString().split('T')[0], status: 'Pending' }]);
-    setVisits(prev => prev.map(v => v.id === formData.visitId ? { ...v, status: 'Selesai Periksa' } : v));
-    alert('Resep berhasil dibuat dengan ID: ' + newId);
-    setShowModal(false);
+    addPrescriptionMutation.mutate(
+      { ...formData, date: new Date().toISOString().split('T')[0], status: 'Pending' },
+      {
+        onSuccess: (data) => {
+          // Update visit status
+          const visit = visits.find(v => v.id === formData.visitId);
+          if (visit) {
+            updateVisitMutation.mutate({ id: formData.visitId, data: { ...visit, status: 'Selesai Periksa' } });
+          }
+          alert('Resep berhasil dibuat dengan ID: ' + data.id);
+          setShowModal(false);
+        },
+        onError: (error) => {
+          alert('Gagal buat resep: ' + error.message);
+        }
+      }
+    );
   };
 
   const handleDrugSubmit = (formData) => {
     if (editingItem) {
-      setDrugs(prev => prev.map(d => d.id === editingItem.id ? { ...formData, id: editingItem.id } : d));
-      alert('Data obat berhasil diupdate!');
+      updateDrugMutation.mutate(
+        { id: editingItem.id, data: formData },
+        {
+          onSuccess: () => {
+            alert('Data obat berhasil diupdate!');
+            setShowModal(false);
+            setEditingItem(null);
+          },
+          onError: (error) => {
+            alert('Gagal update obat: ' + error.message);
+          }
+        }
+      );
     } else {
-      const newId = 'D' + String(drugs.length + 1).padStart(3, '0');
-      setDrugs(prev => [...prev, { ...formData, id: newId }]);
-      alert('Obat baru berhasil ditambahkan dengan ID: ' + newId);
+      addDrugMutation.mutate(formData, {
+        onSuccess: (data) => {
+          alert('Obat baru berhasil ditambahkan dengan ID: ' + data.id);
+          setShowModal(false);
+          setEditingItem(null);
+        },
+        onError: (error) => {
+          alert('Gagal tambah obat: ' + error.message);
+        }
+      });
     }
-    setShowModal(false);
-    setEditingItem(null);
   };
 
   const handleDispenseDrug = (prescription) => {
@@ -151,63 +188,118 @@ const KlinikSentosaSystem = () => {
 
     if (!canDispense) return;
 
+    // Update drug stocks
     prescription.items.forEach(item => {
-      setDrugs(prev => prev.map(d => 
-        d.id === item.drugId ? { ...d, stock: d.stock - item.quantity } : d
-      ));
+      const drug = drugs.find(d => d.id === item.drugId);
+      if (drug) {
+        updateDrugMutation.mutate({
+          id: item.drugId,
+          data: { ...drug, stock: drug.stock - item.quantity }
+        });
+      }
     });
 
-    setPrescriptions(prev => prev.map(p => 
-      p.id === prescription.id ? { ...p, status: 'Diserahkan' } : p
-    ));
+    // Update prescription status
+    updatePrescriptionMutation.mutate({
+      id: prescription.id,
+      data: { ...prescription, status: 'Diserahkan' }
+    });
 
     const totalAmount = prescription.items.reduce((sum, item) => {
       const drug = drugs.find(d => d.id === item.drugId);
       return sum + (drug.unitPrice * item.quantity);
     }, 0) + 50000;
 
-    const newTransaction = {
-      id: 'T' + String(transactions.length + 1).padStart(3, '0'),
-      visitId: prescription.visitId,
-      amount: totalAmount,
-      paymentMethod: 'Tunai',
-      timestamp: new Date().toLocaleString('id-ID'),
-      cashier: currentUser.name
-    };
-
-    setTransactions(prev => [...prev, newTransaction]);
-    alert('Obat berhasil diserahkan dan transaksi dicatat!\nTotal: Rp ' + totalAmount.toLocaleString('id-ID'));
+    // Create transaction
+    addTransactionMutation.mutate(
+      {
+        visitId: prescription.visitId,
+        amount: totalAmount,
+        paymentMethod: 'Tunai',
+        timestamp: new Date().toLocaleString('id-ID'),
+        cashier: currentUser.name
+      },
+      {
+        onSuccess: () => {
+          alert('Obat berhasil diserahkan dan transaksi dicatat!\nTotal: Rp ' + totalAmount.toLocaleString('id-ID'));
+        },
+        onError: (error) => {
+          alert('Gagal catat transaksi: ' + error.message);
+        }
+      }
+    );
   };
 
   const handlePayment = (visitId, amount, method) => {
-    const newTransaction = {
-      id: 'T' + String(transactions.length + 1).padStart(3, '0'),
-      visitId: visitId,
-      amount: amount,
-      paymentMethod: method,
-      timestamp: new Date().toLocaleString('id-ID'),
-      cashier: currentUser.name
-    };
-
-    setTransactions(prev => [...prev, newTransaction]);
-    setVisits(prev => prev.map(v => 
-      v.id === visitId ? { ...v, status: 'Selesai & Lunas' } : v
-    ));
-    alert('Pembayaran berhasil!\nTotal: Rp ' + amount.toLocaleString('id-ID'));
+    addTransactionMutation.mutate(
+      {
+        visitId: visitId,
+        amount: amount,
+        paymentMethod: method,
+        timestamp: new Date().toLocaleString('id-ID'),
+        cashier: currentUser.name
+      },
+      {
+        onSuccess: () => {
+          // Update visit status
+          const visit = visits.find(v => v.id === visitId);
+          if (visit) {
+            updateVisitMutation.mutate({
+              id: visitId,
+              data: { ...visit, status: 'Selesai & Lunas' }
+            });
+          }
+          alert('Pembayaran berhasil!\nTotal: Rp ' + amount.toLocaleString('id-ID'));
+        },
+        onError: (error) => {
+          alert('Gagal proses pembayaran: ' + error.message);
+        }
+      }
+    );
   };
 
   const handleComplaintResponse = (complaintId, response) => {
-    setComplaints(prev => prev.map(c => 
-      c.id === complaintId ? { ...c, response, status: 'Diproses' } : c
-    ));
-    alert('Tanggapan berhasil dikirim!');
+    const complaint = complaints.find(c => c.id === complaintId);
+    if (complaint) {
+      updateComplaintMutation.mutate(
+        {
+          id: complaintId,
+          data: { ...complaint, response, status: 'Diproses' }
+        },
+        {
+          onSuccess: () => {
+            alert('Tanggapan berhasil dikirim!');
+          },
+          onError: (error) => {
+            alert('Gagal kirim tanggapan: ' + error.message);
+          }
+        }
+      );
+    }
   };
 
   const handleDelete = (id, type) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-      if (type === 'patient') setPatients(prev => prev.filter(p => p.id !== id));
-      if (type === 'drug') setDrugs(prev => prev.filter(d => d.id !== id));
-      alert('Data berhasil dihapus!');
+      if (type === 'patient') {
+        deletePatientMutation.mutate(id, {
+          onSuccess: () => {
+            alert('Data pasien berhasil dihapus!');
+          },
+          onError: (error) => {
+            alert('Gagal hapus pasien: ' + error.message);
+          }
+        });
+      }
+      if (type === 'drug') {
+        deleteDrugMutation.mutate(id, {
+          onSuccess: () => {
+            alert('Data obat berhasil dihapus!');
+          },
+          onError: (error) => {
+            alert('Gagal hapus obat: ' + error.message);
+          }
+        });
+      }
     }
   };
 
@@ -449,7 +541,6 @@ const KlinikSentosaSystem = () => {
             {activeMenu === 'examination' && (
               <ExaminationPage 
                 visits={visits} 
-                setVisits={setVisits} 
                 patients={patients} 
               />
             )}
@@ -933,21 +1024,29 @@ const PaymentPage = ({ visits, transactions, handlePayment }) => {
   );
 };
 
-const ExaminationPage = ({ visits, setVisits, patients }) => {
+const ExaminationPage = ({ visits, patients }) => {
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [diagnosis, setDiagnosis] = useState('');
   const [notes, setNotes] = useState('');
+  const updateVisitMutation = useUpdateVisit();
 
   const handleSaveExamination = () => {
     if (selectedVisit) {
-      const updatedVisits = visits.map(v => 
-        v.id === selectedVisit.id 
-          ? { ...v, diagnosis, notes, status: 'Dalam Pemeriksaan' }
-          : v
+      updateVisitMutation.mutate(
+        {
+          id: selectedVisit.id,
+          data: { ...selectedVisit, diagnosis, notes, status: 'Dalam Pemeriksaan' }
+        },
+        {
+          onSuccess: () => {
+            setSelectedVisit({...selectedVisit, diagnosis, notes, status: 'Dalam Pemeriksaan'});
+            alert('Catatan pemeriksaan berhasil disimpan!');
+          },
+          onError: (error) => {
+            alert('Gagal simpan pemeriksaan: ' + error.message);
+          }
+        }
       );
-      setVisits(updatedVisits);
-      setSelectedVisit({...selectedVisit, diagnosis, notes, status: 'Dalam Pemeriksaan'});
-      alert('Catatan pemeriksaan berhasil disimpan!');
     }
   };
 
