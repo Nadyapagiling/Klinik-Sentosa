@@ -98,8 +98,20 @@ export function usePatients() {
     queryKey: ['patients'],
     queryFn: async () => {
       const res = await fetchAPI('/data');
-      const patients = res.data?.filter((item: Patient) => item.type === 'patient') || [];
-      return patients.map((p: Patient) => ({ ...p, id: p._id }));
+      const patients = res.data?.filter((item: any) => item.type === 'patient') || [];
+      return patients.map((p: any) => ({
+        id: p._id,
+        _id: p._id,
+        name: p.name,
+        nik: p.metadata?.nik || '',
+        dob: p.metadata?.dob || '',
+        gender: p.metadata?.gender || '',
+        address: p.address || '',
+        contact: p.phone || p.contact || '',
+        allergy: p.metadata?.allergy || '',
+        medicalHistory: p.metadata?.medicalHistory || '',
+        type: 'patient'
+      }));
     },
   });
 }
@@ -108,9 +120,23 @@ export function useAddPatient() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (patient: Omit<Patient, '_id' | 'id'>) => {
+      const payload = {
+        name: patient.name,
+        email: '',
+        phone: patient.contact,
+        address: patient.address,
+        type: 'patient',
+        metadata: {
+          nik: patient.nik,
+          dob: patient.dob,
+          gender: patient.gender,
+          allergy: patient.allergy || '',
+          medicalHistory: patient.medicalHistory || ''
+        }
+      };
       return fetchAPI('/save', {
         method: 'POST',
-        body: JSON.stringify({ ...patient, type: 'patient' }),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
